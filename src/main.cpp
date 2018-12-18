@@ -1,4 +1,4 @@
-#define ONE_WIRE_BUS D5
+#define ONE_WIRE_BUS 14
 
 #include <OneWire.h>
 #include <Arduino.h>
@@ -38,6 +38,9 @@ void updateView(int current, int total, float value, float avg, String addr, int
 void setup()
 {
     Serial.begin(9600);
+    while (!Serial) {}
+
+    Serial.println("Starting...");
 
     display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 
@@ -49,23 +52,29 @@ void setup()
 
 void loop()
 {
-    sensor->service();
-    float current_temp = sensor->get(current);
-    String addr = sensor->getAddr(current);
-
-    int percent = (int) map(last_change + (millis() - last_change), last_change, last_change + 5000, 0, display.width() - 1);
-
-    updateView(current + 1, sensor->total(), current_temp, sensor->average(), addr, percent);
-
-    if (millis() - last_change > 5000)
+    if (sensor->total() != 0)
     {
-        last_change = millis();
-        current += 1;
+        sensor->service();
 
-        if (current == sensor->total())
+        float current_temp = sensor->get(current);
+        String addr = sensor->getAddr(current);
+        
+        int percent = (int) map(last_change + (millis() - last_change), last_change, last_change + 5000, 0, display.width() - 1);
+    
+        updateView(current + 1, sensor->total(), current_temp, sensor->average(), addr, percent);
+    
+        if (millis() - last_change > 5000)
         {
-            current = 0;
+            last_change = millis();
+            current += 1;
+
+            if (current == sensor->total())
+            {
+                current = 0;
+            }
         }
+    } else {
+        updateView(0, 0, 0.0, 0.0, "", 0);
     }
 
     delay(50);
